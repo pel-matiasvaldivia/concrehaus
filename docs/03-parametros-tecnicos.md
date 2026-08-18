@@ -235,3 +235,96 @@ Modelo para el disclaimer del presupuesto:
 Y del checklist [CL]: los listados "no constituyen la asunción de responsabilidad
 alguna en cada obra en particular, más allá de las contenidas en el Certificado de
 Aptitud Técnica", quedando "a criterio y responsabilidad de cada constructor".
+
+---
+
+# 13. Valores de referencia para insumos de mercado
+
+> **Criterio adoptado:** el cotizador es una herramienta comercial, no un cómputo de
+> obra. Los insumos que dependen de la arena, el cemento y los aditivos disponibles en
+> cada plaza **no se pueden determinar con exactitud desde un plano** — y no hace falta.
+> Se usan **valores de referencia con banda declarada**, calibrables desde el backoffice.
+>
+> Los valores de esta sección son **derivados**, no oficiales. Están calculados a partir
+> de la dosificación oficial (1:4 en volumen, agua 0,45 l/kg de cemento) con densidades
+> aparentes de mercado. Sirven para arrancar; se recalibran contra obras reales.
+
+## 13.1 Las tres clases de dato
+
+El motor clasifica cada ítem del cómputo y de ahí sale la banda del presupuesto:
+
+| Clase | Qué incluye | Precisión | Banda |
+|---|---|---|---|
+| **A — Exacto** | Paneles, mallas angulares / planas / U, hierros de espera. Se derivan de la geometría y de reglas fijas de la documentación oficial. | Alta | **± 5 %** |
+| **B — Referencia** | Concreto proyectado y sus insumos: cemento, arena, agua, fibra, aditivos. Dependen del material de cada plaza. | Media | **± 15 %** |
+| **C — Indicativo** | Terminaciones, revestimientos elastoméricos, mano de obra, puntales y encofrados. Dependen del proyecto y del equipo. | Baja | **± 25 %** |
+
+**Banda total del presupuesto** = promedio ponderado por el peso en $ de cada clase.
+Se muestra al usuario como un rango, y el desglose indica de qué clase es cada rubro.
+
+> Los productos Concrehaus (lo que la empresa efectivamente vende) son casi todos
+> **Clase A**. Eso permite decir con honestidad: *"el material Concrehaus está computado
+> con precisión; los insumos de obra son estimativos y varían según el proveedor de tu zona"*.
+> Es un mensaje que genera confianza en vez de restarla.
+
+## 13.2 Concreto proyectado — rendimientos de referencia
+
+Base: dosificación oficial **1:4 en volumen**, agua **0,45 l/kg de cemento**.
+Densidades aparentes usadas: cemento suelto ~1.200 kg/m³, arena suelta ~1.500 kg/m³.
+
+| Insumo | Valor de referencia | Rango esperable | Nota |
+|---|---|---|---|
+| Cemento | **340 kg / m³** de concreto | 300 – 380 | ≈ 7 bolsas de 50 kg por m³ |
+| Arena | **1,05 m³ / m³** de concreto | 1,00 – 1,15 | la arena aporta casi todo el volumen |
+| Agua | **155 l / m³** | 140 – 175 | = cemento × 0,45; descontar humedad de la arena |
+| Fibra de polipropileno ½" | **0,6 kg / m³** | — | 🟢 valor **oficial**, no de referencia |
+| Plastificante/acelerante (tipo Sikacrete) | **2,5 kg / m³** | 2,0 – 3,5 | derivado del ejemplo oficial: 3 kg / 200 l de mezcla |
+| Hidrófugo (tipo Sika1) | **15 l / m³** | 12 – 20 | derivado del ejemplo oficial: 18 l / 200 l ≈ 10 % del agua |
+| Rebote neto | **15 %** | 10 – 25 | la documentación indica **recoger y reutilizar** el material caído; por eso es menor al 25 % habitual en proyección |
+
+### Anclas por m² de pared (para sanity-check y para mostrar al usuario)
+
+Con 6 cm de concreto total (≈ 3 cm por cara) y 15 % de rebote:
+
+| Por m² de pared proyectada (dos caras) | Referencia |
+|---|---|
+| Concreto | **0,069 m³** |
+| Cemento | **≈ 23,5 kg** → *aproximadamente media bolsa de 50 kg por m²* |
+| Arena | **≈ 0,072 m³** |
+| Agua | **≈ 10,6 l** |
+
+> "Media bolsa de cemento por metro cuadrado de pared" es una regla mental fácil de
+> comunicar y de verificar con cualquier constructor. Sirve como control de que el
+> motor no se fue de escala.
+
+## 13.3 Aditivos y elastómeros — criterio brand-agnostic
+
+El mercado ofrece muchas marcas equivalentes. El motor **no cotiza una marca**: cotiza
+una **función** y toma el precio de referencia del producto que Concrehaus o el
+distribuidor tengan cargado en la lista.
+
+| Función | Unidad de cómputo | Rendimiento de referencia | Rango |
+|---|---|---|---|
+| Plastificante / acelerante | kg por m³ de concreto | 2,5 | 2,0 – 3,5 |
+| Hidrófugo de masa | l por m³ de concreto | 15 | 12 – 20 |
+| **Revestimiento elastomérico** de terminación exterior | l por m² de fachada | **1,0** (dos manos) | 0,7 – 1,4 |
+| Sellador elastomérico de juntas y encuentros | l por ml de junta | 0,15 | 0,10 – 0,25 |
+| Fijador / imprimación previa | l por m² | 0,15 | 0,10 – 0,25 |
+
+**Implementación:** cada función es un `TipoInsumo` con rendimiento editable y una lista
+de productos equivalentes asociados. El usuario ve "revestimiento elastomérico exterior:
+~85 litros"; el backoffice decide qué producto y qué precio se usa. Si el distribuidor
+de la zona trabaja otra marca, se cambia el producto sin tocar el cómputo.
+
+## 13.4 Qué NO se estima
+
+Se declara explícitamente fuera de alcance, para no inflar falsas expectativas:
+
+- Fundaciones y platea (dependen del estudio de suelos).
+- Instalaciones sanitarias, eléctricas y de gas.
+- Carpinterías y vidrios.
+- Movimiento de suelos y trabajos preliminares.
+- Honorarios profesionales, dirección técnica y trámites municipales.
+
+Se listan en el presupuesto como **"no incluido"** con un CTA para cotizarlos aparte:
+es una oportunidad de venta, no un vacío.

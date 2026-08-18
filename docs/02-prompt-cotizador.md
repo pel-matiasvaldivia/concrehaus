@@ -4,7 +4,9 @@
 > proyecto. Los coeficientes provienen de la documentación oficial de Concrehaus
 > (Fichas LEED, Detalles Constructivos v2015, Instructivo de Colocación v1, Checklist
 > de obra); el detalle con fuente por valor está en `03-parametros-tecnicos.md`.
-> Los puntos marcados 🔶 son los únicos que siguen pendientes de confirmación.
+> Lo que depende del mercado (arena, cemento, aditivos, elastómeros) se resuelve con
+> **valores de referencia con banda declarada**, no con datos exactos: ver §13 de
+> `03-parametros-tecnicos.md`. Nada bloquea el desarrollo.
 
 ---
 
@@ -40,48 +42,98 @@ estimado. El objetivo comercial es doble:
 es una **estimación preliminar, meramente indicativa y no vinculante**, y así debe
 comunicarse. El cierre comercial siempre pasa por validación humana.
 
+**Segunda regla, igual de importante: simple gana a exacto.** Un usuario que abandona
+en el paso 3 vale cero, por preciso que fuera el número que iba a ver. El producto se
+diseña para que alguien sin conocimientos técnicos, desde el celular, con una foto del
+plano, llegue a un resultado en menos de 3 minutos. Toda decisión de diseño que agregue
+fricción a cambio de precisión se resuelve a favor de la simplicidad, y la precisión
+faltante se compensa mostrando un **rango honesto** en vez de un número falso.
+
+---
+
+## FILOSOFÍA DE PRECISIÓN — leer antes de escribir el motor
+
+El objetivo NO es reproducir el cómputo de obra de un técnico. Es dar un número
+**aproximado, lo más cercano a la realidad posible, y creíble**. Lo que depende de la
+arena, el cemento y los aditivos disponibles en cada plaza no se puede determinar desde
+un plano — y no hace falta.
+
+Cada ítem del cómputo se clasifica en una de tres clases, y de ahí sale la banda:
+
+| Clase | Qué incluye | Banda |
+|---|---|---|
+| **A — Exacto** | Paneles, mallas, hierros de espera. Derivados de la geometría y de reglas fijas de la documentación oficial. | ± 5 % |
+| **B — Referencia** | Concreto proyectado y sus insumos: cemento, arena, agua, fibra, aditivos. | ± 15 % |
+| **C — Indicativo** | Terminaciones, revestimientos elastoméricos, mano de obra, puntales. | ± 25 % |
+
+La banda total del presupuesto es el promedio ponderado por el peso en $ de cada clase.
+
+> **Esto es una ventaja comercial, no una limitación.** Los productos que Concrehaus
+> vende son casi todos Clase A. El mensaje al usuario es:
+> *"El material Concrehaus está computado con precisión. Los insumos de obra son
+> estimativos y varían según el proveedor de tu zona."*
+> Decirlo genera confianza; esconderlo la destruye en la primera comparación con un
+> presupuesto real.
+
+**Los valores de referencia y sus rangos están en `03-parametros-tecnicos.md` §13.**
+Todos son editables desde el backoffice y se recalibran contra obras reales. Ninguno
+bloquea el desarrollo: el motor arranca con los valores de referencia cargados.
+
+**Insumos brand-agnostic:** el motor no cotiza marcas, cotiza **funciones**
+(plastificante, hidrófugo, revestimiento elastomérico, sellador). Cada función tiene un
+rendimiento de referencia y una lista de productos equivalentes; el backoffice o el
+distribuidor eligen cuál se factura. Si en una zona se trabaja otra marca, se cambia el
+producto sin tocar el cómputo.
+
 ---
 
 ## ALCANCE FUNCIONAL
 
-### Flujo del usuario final
+### Flujo del usuario final — 3 pasos visibles
 
 ```
-1. Landing → propuesta de valor + ejemplo de cotización + CTA
-2. Carga del plano (PDF / JPG / PNG / DXF; hasta 25 MB; multi-página, multi-nivel)
-3. Datos del proyecto
-      · tipo de obra: vivienda nueva | ampliación | cerramiento de estructura
-      · localidad/provincia (define flete, distribuidor y crédito LEED MRc5)
-      · nivel de terminación deseado
-      · cantidad de plantas y altura libre
-      · plazo estimado de inicio
-4. Procesamiento IA → extracción de geometría del plano
-5. ★ VALIDACIÓN INTERACTIVA (pantalla crítica del producto)
-      · el plano se muestra con la geometría detectada superpuesta
-      · el usuario confirma/corrige: escala, muros, espesores, aberturas, losas
-      · métricas en vivo: m² cubiertos, ml de muro, m² de losa, ml de encuentros
-6. Selección de configuración
-      · núcleo: EPS Isopor (PCE) o Neotech (PCN)
-      · espesor por tipo de muro — default: 8 cm exteriores / 4-6 cm interiores
-      · sistema de losa y espesor de capa de compresión
-      · nivel de terminación
-7. Resultado
-      · plano de panelización preliminar (cuántos paneles enteros y cuántos recortados)
-      · cómputo métrico detallado por rubro
-      · listado de materiales con cantidades y unidades comerciales
-      · precio estimado con rango de confianza (± %)
-      · estimación de mano de obra en Hh y plazo de montaje
-      · ficha térmica: K resultante del paquete elegido
-      · ficha LEED: créditos alcanzables (ver más abajo)
-      · listado de herramientas y equipos necesarios en obra
-      · checklist de obra en 9 etapas, personalizado al proyecto
-8. Descarga de PDF (requiere email) → lead al CRM
-9. CTA: "Validar con un técnico Concrehaus" / "Contactar distribuidor de mi zona"
+PASO 1 · Subí tu plano
+    Un solo control grande. Arrastrar, elegir archivo o sacar una foto.
+    PDF / JPG / PNG / DXF. Sin registro, sin formulario previo.
+
+PASO 2 · Confirmá 4 cosas
+    Solo lo que realmente mueve el número:
+      · ¿La escala es correcta?   (precargada; se corrige trazando sobre una cota)
+      · Altura libre               (default 2,60 m)
+      · Cantidad de plantas
+      · Localidad                  (flete, distribuidor y crédito LEED)
+    El plano se muestra con los muros detectados resaltados. Si algo está mal,
+    "Corregir" abre el editor. Si está bien, "Continuar" y listo.
+
+PASO 3 · Tu estimación
+    Arriba, grande y sin jerga:
+      · superficie computada
+      · RANGO de precio del material Concrehaus
+      · plazo estimado de montaje
+      · un botón: "Quiero que me lo revise un técnico"
+    Abajo, plegado, "Ver el detalle completo" para quien quiera:
+      · listado de materiales por rubro, con su clase (A/B/C) visible
+      · panelización, cómputo métrico, insumos de obra
+      · ficha térmica, ficha LEED, checklist de obra, herramientas necesarias
 ```
 
-Los puntos 7.g (herramientas), 7.h (checklist) y 7.f (LEED) salen directamente de la
-documentación oficial ya digitalizada y **cuestan casi nada de implementar, pero
-convierten una cotización en un plan de obra**. Son el diferencial del producto.
+El email se pide **al final**, para enviar o descargar el PDF. Nunca antes.
+
+**Modo experto (opcional, nunca obligatorio).** Un link discreto — "Ajustar el detalle" —
+abre el editor completo: corregir muro por muro, cambiar espesores y núcleo por tipo de
+muro, elegir sistema de losa y nivel de terminación. Es para el arquitecto y el
+constructor. El particular nunca lo ve si no lo busca.
+
+**Defaults que hacen posible el Paso 2.** Todo lo demás se asume y se muestra como
+"podés cambiarlo": núcleo EPS Isopor, 8 cm en exteriores y 6 cm en interiores, losa con
+capa de compresión de 5 cm, terminación estándar. Son los valores de la documentación
+oficial, así que el default es también la respuesta correcta en la mayoría de los casos.
+
+El checklist de obra, el listado de herramientas y la ficha LEED salen directamente de
+la documentación oficial ya digitalizada: **cuestan casi nada de implementar y
+convierten una cotización en un plan de obra**. Van en el detalle plegado y en el PDF,
+nunca en la pantalla principal — son un premio para el que se interesa, no un obstáculo
+para el que recién llega.
 
 ### Backoffice Concrehaus
 
@@ -228,19 +280,26 @@ malla_U_u       = ceil((ml_bordes_libres + ml_parapetos + ml_aleros) / 1.23)
 
 # ═══ CONCRETO PROYECTADO ═══
 m3_concreto_muros = m2_muro_neto × espesor_concreto_total_m × (1 + rebote)
-                    # rebote neto: la documentación indica recoger y REUTILIZAR
-                    # el material caído → usar 0.15, no 0.25   🔶 calibrar
+                    # rebote neto 0.15: la documentación indica recoger y REUTILIZAR
+                    # el material caído, por eso es menor al 0.25 habitual
 m3_concreto_losa  = m2_losa × (0.03 + esp_capa_compresion_m) × (1 + rebote)
 m3_total          = m3_concreto_muros + m3_concreto_losa
 
-# Insumos a partir de la dosificación 1:4 en volumen
-cemento_kg      = m3_total × cemento_kg_por_m3      # 🔶 PEDIR EL VALOR OFICIAL
-arena_m3        = m3_total × arena_m3_por_m3        # 🔶 PEDIR EL VALOR OFICIAL
-agua_l          = cemento_kg × 0.45
-fibra_pp_kg     = m3_total × 0.6
-plastificante   = f(m3_total)   # ratio del ejemplo: 3 kg Sikacrete / 200 l de mezcla
-hidrofugo_l     = f(m3_total)   # ratio del ejemplo: 18 l Sika1 / 200 l de mezcla
+# Insumos — CLASE B, valores de referencia (03-parametros-tecnicos.md §13.2)
+cemento_kg      = m3_total × 340        # rango 300-380 kg/m3
+arena_m3        = m3_total × 1.05       # rango 1.00-1.15 m3/m3
+agua_l          = cemento_kg × 0.45     # oficial
+fibra_pp_kg     = m3_total × 0.6        # oficial
+plastificante_kg= m3_total × 2.5        # rango 2.0-3.5
+hidrofugo_l     = m3_total × 15         # rango 12-20
 bolsas_cemento  = ceil(cemento_kg / 50)
+# Ancla de control: ~0.069 m3 de concreto y ~media bolsa de cemento por m2 de pared.
+# Si el motor se aleja de eso, hay un error de escala en algún lado.
+
+# Terminaciones y elastómeros — CLASE C, por FUNCIÓN, no por marca
+revest_elastomerico_l = m2_fachada × 1.0    # dos manos; rango 0.7-1.4
+sellador_juntas_l     = ml_juntas   × 0.15  # rango 0.10-0.25
+imprimacion_l         = m2_fachada  × 0.15  # rango 0.10-0.25
 
 # ═══ VINCULACIÓN A FUNDACIÓN ═══
 hierros_espera_u  = ceil(ml_muro_total / (separacion_cm / 100))
@@ -248,7 +307,7 @@ hierro_kg         = hierros_espera_u × (longitud_cm/100) × 0.222   # kg/m del 
 
 # ═══ LOSA ═══
 contraflecha_mm   = 7 × distancia_al_apoyo_m       # informativo por paño
-puntales_u        = f(m2_losa)                      # 🔶 COMPLETAR
+puntales_u        = m2_losa × puntales_por_m2       # CLASE C, referencia editable
 dias_apuntalamiento = max(14, plan_de_obra)
 
 # ═══ MANO DE OBRA Y PLAZO ═══
@@ -313,8 +372,12 @@ escribir el código de integración.
    pide confirmación explícita. Si la confianza global es < 0,6, no se muestra precio:
    se ofrece derivación directa a un técnico.
 
-**Nunca** presentar un número al usuario sin que haya pasado por la pantalla de
-validación. Es preferible pedir tres correcciones que entregar un presupuesto equivocado.
+**La escala siempre se confirma; el resto solo si hace falta.** La escala es el único
+dato cuyo error arruina todo el presupuesto, así que su confirmación es parte del Paso 2
+y no se puede saltear. Los muros y aberturas, en cambio, se corrigen solo cuando la
+confianza es baja: si el modelo está seguro, se sigue de largo y el usuario tiene la
+opción — nunca la obligación — de entrar al modo experto. Pedir tres correcciones de más
+cuesta más leads que los que salva.
 
 ---
 
@@ -348,23 +411,38 @@ coeficientes y precios. Reabrir = nueva versión.
 
 ## UX — CRITERIOS INNEGOCIABLES
 
-1. **Sin registro para empezar.** El email se pide recién para descargar el PDF.
-2. **Progreso visible** durante el procesamiento (subiendo → leyendo escala →
-   detectando muros → panelizando → computando), nunca un spinner mudo.
-3. **La pantalla de validación es el producto.** Zoom, pan, arrastrar extremos de muro,
-   agregar/borrar muros y aberturas, editar espesores, deshacer/rehacer, métricas en vivo.
-4. **Rango, no número mágico.** Mostrar "$X – $Y" con el ± % explícito y desglose por
-   rubro abierto, no una caja negra.
-5. **Disclaimer legal** en pantalla y en el PDF, con el lenguaje de la documentación
-   oficial: estimación preliminar, **meramente indicativa y no vinculante**, sujeta a
-   verificación técnica, proyecto ejecutivo, cálculo estructural y disponibilidad de
-   stock; no incluye fundaciones, instalaciones, aberturas ni honorarios profesionales
-   salvo indicación expresa. Aclarar que la responsabilidad de la ejecución queda a
-   criterio del constructor, más allá de lo contenido en el CAT.
-6. **Mobile-first.** Muchos usuarios llegan desde el celular con una foto del plano.
-7. **Accesibilidad AA**; LCP < 2,5 s en la landing.
-8. **Ruta de escape siempre visible:** "Prefiero que me cotice un técnico" en todas las
-   etapas. Un usuario trabado es un lead perdido.
+El criterio rector es **simplicidad**. La app tiene que dar ganas de probarla, no
+sensación de trámite.
+
+1. **Tres pasos, contados a la vista.** El usuario siempre sabe en cuál está y cuánto
+   falta. Nada de wizards de 8 pantallas.
+2. **Sin registro para empezar.** El email se pide recién al final, para el PDF.
+3. **Un solo control por pantalla.** El Paso 1 es un área de carga y nada más.
+4. **Lenguaje de persona, no de ingeniero.** "Paredes" y "techos", no "flexocompresión"
+   ni "tabiques portantes". La jerga vive en el detalle plegado y en el PDF.
+5. **Defaults en todo.** Ningún campo obligatorio que se pueda asumir. Cada default
+   visible y editable, nunca oculto.
+6. **Progreso visible** durante el procesamiento (subiendo → leyendo escala → detectando
+   paredes → calculando), con lenguaje humano. Nunca un spinner mudo.
+7. **Rango, no número mágico.** "$X – $Y" con el ± explícito. Cada rubro del detalle
+   muestra su clase (A exacto / B referencia / C indicativo). Es lo que hace creíble al
+   número: el usuario ve dónde la app sabe y dónde estima.
+8. **El detalle empieza plegado.** Quien quiere el número, lo tiene arriba. Quien quiere
+   la lista de materiales, la despliega. Nadie tiene que scrollear la ingeniería para
+   llegar al precio.
+9. **Corregir es opcional, nunca obligatorio.** Si la extracción tiene buena confianza,
+   se sigue de largo. Solo se fuerza la corrección cuando la confianza es baja, y se
+   pide únicamente el dato flojo — no todo el plano de nuevo.
+10. **Mobile-first de verdad.** El caso de uso más común es una foto del plano desde el
+    celular. Se diseña primero para esa pantalla.
+11. **Disclaimer legal** en pantalla y en el PDF, con el lenguaje de la documentación
+    oficial: estimación preliminar, **meramente indicativa y no vinculante**, sujeta a
+    verificación técnica, proyecto ejecutivo, cálculo estructural y disponibilidad de
+    stock. Listar explícitamente lo NO incluido (fundaciones, instalaciones,
+    carpinterías, honorarios) — ver `03-parametros-tecnicos.md` §13.4.
+12. **Ruta de escape siempre visible:** "Prefiero que me cotice un técnico", en todas
+    las etapas. Un usuario trabado es un lead perdido; ese botón lo convierte igual.
+13. **Accesibilidad AA**; LCP < 2,5 s en la landing.
 
 ## MOTOR COMERCIAL (el objetivo real del producto)
 
@@ -404,10 +482,14 @@ coeficientes y precios. Reabrir = nueva versión.
 ## CRITERIOS DE ACEPTACIÓN
 
 - [ ] Un plano de vivienda de ~100 m² se procesa en < 90 s.
-- [ ] El cómputo automático queda dentro de ±10 % del cómputo manual de un técnico
-      Concrehaus en al menos 8 de 10 planos de prueba.
+- [ ] Del alta al resultado hay **3 pasos** y se completa en menos de 3 minutos, desde
+      el celular, sin conocimientos técnicos. Probarlo con alguien ajeno al proyecto.
+- [ ] Los **ítems Clase A** (paneles y mallas) quedan dentro de **±5 %** del cómputo
+      manual de un técnico Concrehaus en al menos 8 de 10 planos de prueba.
+- [ ] El total del presupuesto cae dentro de la banda declarada en 8 de 10 casos.
+- [ ] Cada rubro del detalle muestra su clase (A/B/C) y la app explica qué significa.
 - [ ] La panelización usa paso de 1,20 m y hay un test que lo prueba explícitamente.
-- [ ] Ninguna cotización se emite sin pasar por la pantalla de validación.
+- [ ] Ninguna cotización se emite sin que la escala haya sido confirmada.
 - [ ] Los coeficientes y precios se cambian sin desplegar código.
 - [ ] Cada cotización es reproducible: mismo input + misma versión = mismo output.
 - [ ] Los planos subidos no son accesibles públicamente.
@@ -421,35 +503,47 @@ Fase 1  Motor de cómputo + panelización + backoffice, con carga MANUAL de geom
         (Entrega valor desde el día uno y permite calibrar sin depender de la IA.)
 Fase 2  Pipeline de extracción IA + pantalla de validación interactiva.
 Fase 3  PDF, LEED, checklist de obra, leads, CRM, distribuidores, venta cruzada.
+        Auditoría: cargar obras reales y angostar las bandas de referencia.
 Fase 4  Analítica, nurturing, calibración con obras reales.
 ```
 
 Empezá por la Fase 1. Antes de escribir código, proponé el esquema de base de datos y
 el catálogo de coeficientes, y esperá aprobación.
 
-## DATOS QUE FALTAN — PEDIR ANTES DE AVANZAR
+## DATOS PENDIENTES — NINGUNO BLOQUEA EL DESARROLLO
 
-Ya resueltos por la documentación oficial: geometría del panel, espesores frecuentes,
-K y λ por núcleo, familias y conteo de mallas, dosificación, contraflecha,
-desapuntalamiento, rendimientos de montaje, créditos LEED, listado de herramientas y
-checklist de obra.
+La documentación oficial ya resolvió lo esencial: geometría del panel, espesores
+frecuentes, K y λ por núcleo, familias y conteo de mallas, dosificación, contraflecha,
+desapuntalamiento, rendimientos de montaje, créditos LEED, herramientas y checklist.
+Lo que falta se cubre con **valores de referencia** (`03-parametros-tecnicos.md` §13) y
+se calibra sobre la marcha.
 
-Sigue pendiente:
+**Se arranca sin esperar nada.** Lo siguiente mejora la calibración cuando llegue:
 
-1. 🔶 **Consumo de cemento y arena por m³ de concreto proyectado** (o directamente por
-   m² de pared). Es el dato que más pesa en el presupuesto de materiales de obra y la
-   relación 1:4 en volumen no alcanza para derivarlo sin el peso específico de la arena.
-2. 🔶 **Separación real de los hierros de espera:** el Instructivo dice 30/40 cm, los
-   Detalles Constructivos dicen 50 cm y la ficha web dice 40/50 cm.
-3. 🔶 Diferencia de uso entre **malla angular M25 y M30** (los Detalles nombran M25 para
-   pared > 10 cm; el catálogo comercial lista M30).
-4. Espesores de núcleo efectivamente comercializados por tipo de panel, y alturas de
-   stock vs. corte a medida.
-5. Lista de precios vigente con unidades de venta y packs.
-6. Política de precios: ¿públicos en la web o solo vía distribuidor?
-7. Mapa de distribuidores por zona y costos de flete.
-8. Razón social que debe emitir los presupuestos (Grupo Estisol / Novapol S.A.).
-9. Manual de marca: logo, paleta (el verde institucional y el azul de la documentación),
+| Dato | Cómo se resuelve mientras tanto |
+|---|---|
+| Consumo real de cemento y arena por m³ | Referencia 340 kg/m³ y 1,05 m³/m³, banda ± 15 % |
+| Separación de hierros de espera (30/40 vs 50 cm) | Default 40 cm, parametrizable |
+| Si M25 y M30 son la misma pieza | Se cargan como productos distintos; el backoffice unifica |
+| Rendimientos reales de elastómeros y terminaciones | Valores de referencia por función, banda ± 25 % |
+| Espesores y alturas efectivamente comercializados | Se cargan los frecuentes; el ABM permite el resto |
+| Puntales y encofrado por m² de losa | Clase C, coeficiente de referencia editable |
+
+**Sí se necesita antes de salir a producción:**
+
+1. **Lista de precios vigente** con unidades de venta y packs. Sin esto no hay
+   presupuesto, solo cómputo.
+2. **Política de precios:** ¿públicos en la web o solo vía distribuidor? Define si el
+   usuario ve pesos o ve "consultá con tu distribuidor" sobre el mismo cómputo.
+3. **Mapa de distribuidores por zona** y costos de flete.
+4. **Razón social** que emite los presupuestos (Grupo Estisol / Novapol S.A.).
+5. **Manual de marca:** logo, paleta (verde institucional + azul de la documentación),
    tipografías.
-10. CRM en uso y forma de integración.
-11. Cómputos de 5-10 obras reales ya ejecutadas, para calibrar y validar el motor.
+6. **CRM** en uso y forma de integración.
+
+**Para calibrar (idealmente antes del lanzamiento, obligatorio en los primeros meses):**
+
+7. **Cómputos de 5-10 obras reales ya ejecutadas.** Es lo que convierte los valores de
+   referencia en valores propios de Concrehaus. El backoffice ya trae la pantalla de
+   auditoría para hacerlo: se carga el cómputo real, se compara contra el automático y
+   se ajustan los coeficientes. Cada obra cargada angosta las bandas.
