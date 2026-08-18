@@ -1,0 +1,104 @@
+# Análisis del sitio concrehaus.com
+
+> Relevamiento realizado desde fuentes públicas indexadas del sitio (home, `/faq/`,
+> `/informacion-tecnica/`, `/novedades/`, `/categoria/*`, `/imagenes/*`, fichas PDF en
+> `/wp-content/themes/concrehaus/documentos/`) y notas de prensa sectoriales.
+> Los datos técnicos deben validarse contra la Memoria Descriptiva y el Manual de
+> Ejecución oficiales antes de usarlos como coeficientes de cómputo.
+
+## 1. Quién es
+
+- **Marca:** Concrehaus® — "La solución constructiva eficiente".
+- **Empresa:** Grupo Estisol (fabricante de EPS Isopor desde 1964 en Argentina).
+  7 plantas industriales en el país, 2 de ellas dedicadas a Concrehaus. Planta
+  presentada en Pilar, Buenos Aires.
+- **Ecosistema comercial:** tienda online de Estisol Construcción y red de
+  distribuidores (Tecnopor, Xcons, Punto Seco, Novopor, Telpor, etc.).
+- **Respaldo:** Certificado de Aptitud Técnica (CAT) de la Dirección de Tecnología
+  e Industrialización de la Subsecretaría de Desarrollo Urbano y Vivienda.
+
+## 2. Qué vende
+
+Sistema constructivo de **paneles monolíticos estructurales**: núcleo de EPS
+(Isopor / Neopor / Neotech) + mallas de acero electrosoldado de alta resistencia
+vinculadas por conectores, que reciben **hormigón proyectado** en obra y se
+transforman en una estructura continua portante.
+
+| Línea | Uso | Datos técnicos publicados |
+|---|---|---|
+| **Panel tipo C** | Muros y cerramientos verticales (interiores y exteriores), flexocompresión con compresión predominante | Núcleo desde 4 cm; con 6 cm de hormigón total genera muro de 10 cm |
+| **Panel tipo F** | Losas y cubiertas, esfuerzos de flexión | Núcleo desde 4 cm + ~3 cm de hormigón inferior + capa de compresión de hormigón convencional ≥ 4 cm |
+| **Panel de Cerramiento / RapiWall** | Muros no portantes, cierre de estructuras de H°A° o steel | Núcleo EPS + malla galvanizada ambas caras; recibe revoque proyectado. ~2,8 m² de superficie lista por panel |
+| **Mallas de refuerzo** (accesorios) | Continuidad estructural | Angular M15 185×185×1230 mm y M30 300×300×1230 mm (encuentros en ángulo); Plana 225×1230 y 300×1230 mm (aberturas, empalmes, discontinuidades); U 195×195×1230 mm (aleros, bordes de muro, parapetos) |
+
+**Geometría base:** paneles rectangulares planos de **1,20 m de ancho útil** y
+**altura variable según proyecto, hasta 6 m**. Las mallas accesorias vienen en
+módulos de **1,23 m**.
+
+**Performance publicada:**
+- Montaje: **0,5 Hh/m²** vs. **1,5 Hh/m²** de mampostería tradicional (3× productividad).
+- Aislación: con 8 cm de núcleo, **K ≈ 0,5 W/m²·K**.
+- Durabilidad > 60 años, resistencia al fuego F-180, bajo mantenimiento estructural.
+
+## 3. Estructura del sitio
+
+Sitio WordPress con tema propio. Secciones detectadas:
+
+- `/` — home con propuesta de valor y beneficios.
+- `/informacion-tecnica/` — Memoria Descriptiva, Manual de Ejecución, fichas
+  técnicas por producto (PDFs descargables).
+- `/faq/` — preguntas frecuentes sobre la tecnología.
+- `/novedades/` — blog (ej. "Concrehaus + Encofrados: una combinación potente",
+  "Sistema Concrehaus: versatilidad y rapidez").
+- `/categoria/losas/`, `/categoria/terminaciones/` — contenidos por temática.
+- `/imagenes/*` — galerías de obra: arquitectura comercial, cerramientos de
+  estructuras, con encofrados, capacitación en obra para constructores.
+
+## 4. Servicios declarados (clave para el cotizador)
+
+El sitio y la comunicación de Estisol ya ofrecen, **de forma manual**:
+
+1. **Cómputo y presupuesto por proyecto.**
+2. Asesoramiento técnico en etapa de diseño y de ejecución.
+3. Documentación técnica descargable.
+4. Capacitación a constructores en obra.
+5. Cálculo y apoyo de diseño para profesionales.
+
+## 5. Diagnóstico y oportunidad
+
+**Modelo de negocio actual:** venta de material (paneles + mallas + accesorios)
+a través de distribuidores, con la demanda traccionada por arquitectos,
+constructoras y particulares que descubren el sistema.
+
+**Fricción principal:** el visitante que ya está convencido del sistema no
+puede saber cuánto le cuesta *su* casa sin mandar planos por mail y esperar a
+que un técnico haga el cómputo. Ese cuello de botella:
+- pierde leads calientes por demora,
+- consume horas de ingeniería en consultas que no cierran,
+- no deja ningún dato estructurado de la demanda.
+
+**Dónde ataca el cotizador:**
+
+| Fricción | Qué resuelve la app |
+|---|---|
+| Espera de días por un presupuesto | Estimación en minutos desde el plano |
+| Lead sin datos | Captura estructurada: m², ubicación, tipología, plazo, rol del usuario |
+| Cómputo manual repetido | Cómputo automatizado; el técnico solo valida |
+| Venta acotada al panel | Venta cruzada: accesorios, aislaciones, terminaciones, capacitación, dirección técnica |
+| Distribuidores sin herramienta | Derivación del lead al distribuidor de la zona |
+
+**Ventajas del sistema que juegan a favor del cómputo automático:** geometría
+altamente modular (ancho fijo 1,20 m, accesorios de 1,23 m), catálogo acotado
+(C / F / cerramiento + 3 familias de malla) y espesores normalizados. Es un
+sistema mucho más computable que la mampostería tradicional.
+
+## 6. A verificar con el sitio a la vista
+
+- [ ] Menú de navegación exacto y existencia de `/contacto/`, `/obras/`, `/distribuidores/`.
+- [ ] Listado completo de espesores de núcleo comercializados por tipo de panel.
+- [ ] Alturas estándar de stock vs. corte a medida.
+- [ ] Coeficientes oficiales del Manual de Ejecución: consumo de hormigón por m²,
+      criterios de solape de mallas, refuerzos por abertura.
+- [ ] Identidad visual: paleta, tipografías, logo, tono editorial.
+- [ ] Política de precios: ¿precio público o solo a través de distribuidor?
+- [ ] Formularios/CRM ya en uso y herramientas de analítica instaladas.
