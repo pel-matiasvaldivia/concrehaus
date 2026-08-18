@@ -125,8 +125,8 @@ PASO 3 · Tu estimación
 El email se pide **al final**, para enviar o descargar el PDF. Nunca antes.
 
 **Qué pasa cuando el usuario termina.** Al descargar el PDF o pedir la revisión de un
-técnico, se crea el `Proyecto`, se asigna automáticamente a un comercial según la zona y
-se le dispara la notificación. **Ningún lead queda huérfano**: ese es el puente entre el
+técnico, se crea el `Proyecto`, se asigna automáticamente a un comercial (round-robin
+nacional por carga) y se le dispara la notificación. **Ningún lead queda huérfano**: ese es el puente entre el
 cotizador público y el portal comercial de la sección siguiente.
 
 **Modo experto (opcional, nunca obligatorio).** Un link discreto — "Ajustar el detalle" —
@@ -177,10 +177,22 @@ cuántos vencidos. Que el comercial vea su propio número apenas entra.
 #### 2. Estados y seguimiento
 
 ```
-NUEVO → CONTACTADO → COTIZADO → EN NEGOCIACIÓN → GANADO
+NUEVO → CONTACTADO → COTIZADO → EN NEGOCIACIÓN → DERIVADO A DISTRIBUIDOR → GANADO
                                               ↘ PERDIDO (con motivo obligatorio)
                                               ↘ EN PAUSA (con fecha de retomar)
 ```
+
+**`DERIVADO A DISTRIBUIDOR` no es el final, es el estado más frágil del embudo.** Como
+la venta se factura por canal indirecto (ver más abajo), es el punto donde el proyecto
+sale de las manos del comercial y puede perderse de vista. Por eso:
+
+- Derivar **exige elegir el distribuidor** y deja registro de fecha y monto derivado.
+- El proyecto **sigue en la cartera del comercial**, no desaparece: se le agenda
+  automáticamente un seguimiento al distribuidor a los N días (default 7).
+- `GANADO` solo se marca con **confirmación de facturación del distribuidor** —
+  cargada por el distribuidor desde su acceso, o por el comercial con el dato del pedido.
+- Un proyecto derivado sin confirmar pasados X días (default 30) aparece en rojo en el
+  pipeline y en el tablero de gerencia. **Es la fuga más cara del negocio y hay que verla.**
 
 - Cambiar de estado **exige registrar la actividad** que lo justifica (llamada, mail,
   visita, WhatsApp, reunión) y **agendar la próxima acción con fecha**. Un proyecto
@@ -220,15 +232,83 @@ El comercial usa **el mismo motor** que el cliente, con permisos ampliados:
 - **Enviar al cliente** por email desde la app, con seguimiento de apertura, o generar
   un link público de solo lectura para mandar por WhatsApp.
 
-#### 4. Asignación y cartera
+#### 4. Asignación y cartera — equipo nacional
 
-- **Ruteo automático del lead entrante** por zona geográfica, con round-robin dentro de
-  la zona y respeto de la carga de cada comercial.
+El equipo de ventas es **nacional**: no hay zonas comerciales. La geografía no define
+quién atiende, define **qué distribuidor factura**. Son dos ruteos distintos y hay que
+implementarlos por separado.
+
+- **Ruteo del lead al comercial:** round-robin nacional **balanceado por carga activa**
+  (no por cantidad histórica), respetando disponibilidad y horario laboral. Nada de
+  asignar a alguien de licencia.
+- **Ruteo del proyecto al distribuidor:** por localidad del proyecto, contra el mapa de
+  cobertura. Es independiente de quién sea el comercial asignado.
+- **Especialización opcional en vez de zona:** como el equipo es nacional, la
+  segmentación útil no es geográfica sino por tipo de proyecto — vivienda particular,
+  obra corporativa, desarrollo inmobiliario. Dejarlo configurable: si se activa, el
+  ruteo prioriza al comercial especializado y cae a round-robin si no hay disponible.
 - **Reasignación manual** por el gerente, con motivo y notificación a ambos.
-- **Cartera propia por defecto:** cada comercial ve sus proyectos. Puede ver los del
-  equipo en modo lectura si la configuración lo permite.
-- **Alerta de reasignación automática** cuando un lead lleva N horas sin contactar, para
-  que un lead caliente no se enfríe esperando a alguien que está de licencia.
+- **Cartera propia por defecto:** cada comercial ve sus proyectos; los del equipo, en
+  modo lectura si la configuración lo permite.
+- **Reasignación automática** cuando un lead lleva N horas sin contactar. Con equipo
+  nacional esto es más importante, no menos: no hay un "dueño natural de la zona" que
+  lo reclame.
+
+#### 4-bis. Canal indirecto: precios y descuentos
+
+**La venta se factura por distribuidor.** Concrehaus no le vende al cliente final, así
+que el cotizador no emite un precio de venta propio: emite un **precio sugerido de
+referencia**. Esto tiene tres consecuencias de diseño que no son opcionales.
+
+**a. Dos niveles de precio, una sola lista madre.**
+
+```
+ListaPrecios (madre)
+   ├── PVP sugerido          → lo que ve el cliente final en el cotizador público
+   └── Precio a distribuidor → lo que ve el distribuidor en su acceso
+                               (PVP menos su margen de canal, configurable)
+```
+
+Un mismo cómputo se valoriza contra el nivel que corresponda según quién esté mirando.
+El motor de cómputo es idéntico; solo cambia la lista aplicada.
+
+**b. El cotizador público habla de "precio estimado de referencia".**
+Nunca "precio final", nunca "precio Concrehaus". El PDF aclara que la venta y la
+facturación las realiza el distribuidor de la zona, y que el valor final puede variar
+según sus condiciones. Prometer un precio que otro va a facturar es la forma más rápida
+de romper la relación con el canal.
+
+**c. Tope de descuento: 15 %.**
+
+- Default configurable: **15 % para el rol comercial**. Por encima, requiere aprobación
+  del gerente comercial, con motivo y registro.
+- El descuento se aplica **sobre el PVP sugerido** y se muestra desglosado en la
+  cotización (precio de lista, descuento aplicado, subtotal).
+- **Alerta de margen de canal:** si el descuento otorgado invade el margen del
+  distribuidor, la UI lo advierte antes de confirmar. Un descuento del 15 % sobre PVP
+  puede dejar al distribuidor sin margen y frustrar la venta que se intentaba cerrar.
+  🔶 **Definir con Concrehaus**: si el 15 % aplica sobre PVP o sobre lista de
+  distribuidor. El motor soporta ambos; hay que elegir cuál es el default.
+- Descuentos acumulados por proyecto: si se emiten varias versiones, el tope se evalúa
+  sobre la versión vigente, no sobre la suma.
+
+#### 4-ter. Acceso del distribuidor
+
+El distribuidor deja de ser un dato de contacto y pasa a ser **un usuario del sistema**,
+porque es quien cierra:
+
+- Ve **solo los proyectos derivados a él**, con el cómputo completo y los precios a su
+  nivel de lista.
+- Confirma o rechaza la derivación, y **carga la confirmación de facturación** que
+  habilita el estado `GANADO`.
+- Registra actividad visible para el comercial de Concrehaus, para que el seguimiento
+  no dependa de llamadas telefónicas.
+- No ve carteras de otros distribuidores ni los datos de contacto de leads que no le
+  fueron derivados.
+
+**Este acceso es lo que hace medible al canal indirecto.** Sin él, el embudo termina en
+"derivado" y la empresa nunca sabe qué porcentaje de sus leads efectivamente se
+convirtió en venta.
 
 #### 5. Notificaciones
 
@@ -240,13 +320,16 @@ descuento pendiente o resuelta.
 
 Rol aparte, con todo lo del comercial más:
 
-- Embudo por comercial, por zona, por origen y por período; tasa de conversión y tiempo
-  medio en cada estado.
+- Embudo por comercial, por distribuidor, por origen y por período; tasa de conversión
+  y tiempo medio en cada estado.
 - **Ranking de motivos de pérdida** — el input más valioso para ajustar precio y discurso.
 - **Tiempo de primera respuesta** por comercial, que es la métrica que más correlaciona
   con cierre.
 - Monto en pipeline ponderado por probabilidad de estado.
-- Cola de aprobación de descuentos.
+- Cola de aprobación de descuentos (todo lo que supere el 15 %).
+- **Tablero de canal:** conversión por distribuidor, proyectos derivados sin confirmar,
+  monto derivado vs. monto facturado, tiempo medio entre derivación y cierre. Es la
+  medición que hoy la empresa no tiene.
 - Alta, baja y permisos de usuarios; definición de zonas y topes de descuento.
 
 ### Backoffice técnico y de administración
@@ -268,10 +351,10 @@ Rol aparte, con todo lo del comercial más:
 | Rol | Puede |
 |---|---|
 | **Visitante** | Cotizar en el sitio público, descargar su PDF. Sin cuenta. |
-| **Comercial** | Ver y trabajar **su** cartera, crear proyectos y clientes, cotizar, ajustar dentro de su tope, emitir presupuestos, registrar actividad. |
-| **Gerente comercial** | Todo lo anterior sobre **todas** las carteras + asignar, aprobar descuentos, ver métricas del equipo. |
+| **Comercial** | Ver y trabajar **su** cartera (asignación nacional), crear proyectos y clientes, cotizar, descontar **hasta 15 %**, emitir presupuestos, derivar a distribuidor, registrar actividad. |
+| **Gerente comercial** | Todo lo anterior sobre **todas** las carteras + asignar, **aprobar descuentos por encima del 15 %**, ver métricas del equipo y del canal. |
 | **Técnico** | Validar cómputos, corregir geometría, cargar obras reales para calibración. |
-| **Distribuidor** | Ver solo los leads derivados a su zona, en modo acotado. |
+| **Distribuidor** | Ver **solo los proyectos derivados a él**, con precios a su nivel de lista; confirmar derivación, registrar actividad y **cargar la confirmación de facturación**. |
 | **Admin** | Precios, coeficientes, usuarios, zonas, integraciones. |
 
 Permisos aplicados **en el backend** (row-level security por cartera), nunca solo
@@ -539,7 +622,8 @@ Producto, TipoInsumo, ListaPrecios, PrecioProducto, CoeficientesComputo
 
 # Comercial
 Usuario, Rol, Cliente, Asignacion, Actividad, ProximaAccion, MotivoPerdida,
-SolicitudDescuento, Zona, Distribuidor, ZonaFlete, Notificacion, LogAuditoria
+SolicitudDescuento, Distribuidor, CoberturaDistribuidor, Derivacion,
+ConfirmacionFacturacion, ZonaFlete, Notificacion, LogAuditoria
 ```
 
 Reglas del modelo:
@@ -550,6 +634,12 @@ Reglas del modelo:
 - **`Actividad` es append-only.** No se edita ni se borra: es el historial del cliente.
 - Un `Proyecto` sin `ProximaAccion` abierta es, por definición, un proyecto en riesgo, y
   la UI lo trata como tal.
+- **`ListaPrecios` tiene dos niveles** (PVP sugerido y precio a distribuidor). La
+  cotización guarda cuál se aplicó; el mismo cómputo se puede valorizar contra ambos.
+- **`Derivacion` es una entidad, no un campo.** Guarda distribuidor, fecha, monto
+  derivado y estado; `ConfirmacionFacturacion` es lo único que habilita `GANADO`.
+- **No hay `Zona` comercial.** El equipo es nacional; la geografía vive en
+  `CoberturaDistribuidor`.
 
 ---
 
@@ -608,7 +698,8 @@ sensación de trámite.
   una cotización en una guía de proyecto — con un CTA natural a la capacitación en obra.
 - **Segmentación del lead:** particular / arquitecto / constructora / desarrollador, con
   recorridos y materiales de seguimiento distintos.
-- **Ruteo automático al distribuidor** de la provincia/localidad del proyecto.
+- **Ruteo al distribuidor** por localidad del proyecto: la venta se factura por canal
+  indirecto, así que la derivación es parte del cierre, no un extra.
 - **Analítica:** embudo completo (visita → carga de plano → validación completada →
   cotización → PDF descargado → contacto).
 
@@ -646,7 +737,14 @@ sensación de trámite.
 - [ ] Ningún proyecto activo puede quedar sin próxima acción agendada.
 - [ ] Un comercial no puede ver ni exportar la cartera de otro (verificado con un test
       de autorización contra la API, no solo en la UI).
-- [ ] Un descuento por encima del tope no se aplica sin aprobación registrada.
+- [ ] Un descuento **superior al 15 %** no se aplica sin aprobación registrada del
+      gerente comercial, con motivo.
+- [ ] El cotizador público nunca presenta el precio como final: dice **"estimado de
+      referencia"** y aclara que factura el distribuidor.
+- [ ] Un proyecto no puede pasar a `GANADO` sin confirmación de facturación.
+- [ ] Los proyectos derivados sin confirmar a los 30 días aparecen en rojo para el
+      comercial y en el tablero de gerencia.
+- [ ] Un distribuidor solo ve sus derivaciones, y ve precios a su nivel de lista.
 - [ ] El presupuesto formal emitido por un comercial se distingue del estimativo
       público: numeración, validez y condiciones comerciales.
 - [ ] Toda actividad y todo ajuste quedan en el timeline, con autor y fecha.
@@ -675,6 +773,10 @@ desapuntalamiento, rendimientos de montaje, créditos LEED, herramientas y check
 Lo que falta se cubre con **valores de referencia** (`03-parametros-tecnicos.md` §13) y
 se calibra sobre la marcha.
 
+**Ya definido por el cliente:** equipo de ventas **nacional** (sin zonas comerciales),
+venta **por distribuidor** (canal indirecto), tope de descuento del **15 %** para el rol
+comercial.
+
 **Se arranca sin esperar nada.** Lo siguiente mejora la calibración cuando llegue:
 
 | Dato | Cómo se resuelve mientras tanto |
@@ -692,20 +794,24 @@ se calibra sobre la marcha.
    presupuesto, solo cómputo.
 2. **Política de precios:** ¿públicos en la web o solo vía distribuidor? Define si el
    usuario ve pesos o ve "consultá con tu distribuidor" sobre el mismo cómputo.
-3. **Mapa de distribuidores por zona** y costos de flete.
+3. **Costos de flete** por destino.
 4. **Razón social** que emite los presupuestos (Grupo Estisol / Novapol S.A.).
 5. **Manual de marca:** logo, paleta (verde institucional + azul de la documentación),
    tipografías.
 6. **CRM** en uso y forma de integración (o si el portal comercial lo reemplaza).
-7. **Equipo comercial:** cuántas personas, cómo se reparten las zonas, y si la venta es
-   directa, por distribuidor o mixta. Define el ruteo automático.
-8. **Topes de descuento** por rol y circuito de aprobación vigente.
-9. **Condiciones comerciales estándar:** validez del presupuesto, formas de pago,
-   plazos de entrega — para el PDF del presupuesto formal.
+7. **Márgenes de canal por distribuidor** — el diferencial entre PVP sugerido y precio
+   a distribuidor. Sin esto no se puede armar el segundo nivel de la lista de precios
+   ni alertar cuando un descuento invade el margen del canal.
+8. 🔶 **Sobre qué lista aplica el tope del 15 %:** ¿sobre el PVP sugerido o sobre el
+   precio a distribuidor? El motor soporta ambos; hay que elegir el default.
+9. **Padrón de distribuidores** con cobertura por localidad, datos de contacto y quién
+   es el usuario que va a operar el acceso.
+10. **Condiciones comerciales estándar:** validez del presupuesto, formas de pago,
+    plazos de entrega — para el PDF del presupuesto formal.
 
 **Para calibrar (idealmente antes del lanzamiento, obligatorio en los primeros meses):**
 
-10. **Cómputos de 5-10 obras reales ya ejecutadas.** Es lo que convierte los valores de
+11. **Cómputos de 5-10 obras reales ya ejecutadas.** Es lo que convierte los valores de
    referencia en valores propios de Concrehaus. El backoffice ya trae la pantalla de
    auditoría para hacerlo: se carga el cómputo real, se compara contra el automático y
    se ajustan los coeficientes. Cada obra cargada angosta las bandas.
