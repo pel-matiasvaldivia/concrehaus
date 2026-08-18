@@ -89,6 +89,11 @@ producto sin tocar el cómputo.
 
 ## ALCANCE FUNCIONAL
 
+El producto tiene **dos caras**: el **cotizador público**, abierto y sin registro, que
+genera la demanda; y el **portal comercial**, con login, donde el equipo de la empresa
+convierte esa demanda en venta. Se diseñan juntos: comparten el mismo motor de cómputo
+y la misma base de datos.
+
 ### Flujo del usuario final — 3 pasos visibles
 
 ```
@@ -119,6 +124,11 @@ PASO 3 · Tu estimación
 
 El email se pide **al final**, para enviar o descargar el PDF. Nunca antes.
 
+**Qué pasa cuando el usuario termina.** Al descargar el PDF o pedir la revisión de un
+técnico, se crea el `Proyecto`, se asigna automáticamente a un comercial según la zona y
+se le dispara la notificación. **Ningún lead queda huérfano**: ese es el puente entre el
+cotizador público y el portal comercial de la sección siguiente.
+
 **Modo experto (opcional, nunca obligatorio).** Un link discreto — "Ajustar el detalle" —
 abre el editor completo: corregir muro por muro, cambiar espesores y núcleo por tipo de
 muro, elegir sistema de losa y nivel de terminación. Es para el arquitecto y el
@@ -135,18 +145,137 @@ convierten una cotización en un plan de obra**. Van en el detalle plegado y en 
 nunca en la pantalla principal — son un premio para el que se interesa, no un obstáculo
 para el que recién llega.
 
-### Backoffice Concrehaus
+### Portal comercial (acceso interno con login)
+
+**El cotizador público genera leads; el portal comercial es donde se convierten en
+venta.** Sin esto, los proyectos entran y nadie los trabaja: el objetivo del producto
+—aumentar la oportunidad de venta— depende tanto de esta parte como del cotizador.
+
+**Acceso:** login por magic link con email corporativo (dominio de la empresa validado)
+o usuario y contraseña con 2FA opcional. Sesión con expiración e invalidación remota.
+Ruta separada del sitio público (`/comercial`), sin enlace desde la landing.
+
+#### 1. Mi pipeline — la pantalla de inicio del comercial
+
+Lista de trabajo, ordenada por urgencia, no por fecha de creación:
+
+```
+🔴 VENCIDOS          seguimiento comprometido que ya pasó
+🟠 PARA HOY          contactos agendados para hoy
+🟡 SIN CONTACTAR     leads nuevos asignados hace más de X horas (configurable, default 24)
+⚪ EN CURSO          el resto de la cartera activa
+```
+
+Cada fila muestra de un vistazo: cliente, localidad, superficie, monto estimado,
+estado, días sin actividad y **próxima acción comprometida**. Filtros por estado,
+localidad, rango de monto, origen (web / creado por comercial / feria / distribuidor) y
+antigüedad. Búsqueda por nombre, email, teléfono o número de proyecto.
+
+**Contador de cartera arriba:** cuántos proyectos activos, cuánto suma el pipeline,
+cuántos vencidos. Que el comercial vea su propio número apenas entra.
+
+#### 2. Estados y seguimiento
+
+```
+NUEVO → CONTACTADO → COTIZADO → EN NEGOCIACIÓN → GANADO
+                                              ↘ PERDIDO (con motivo obligatorio)
+                                              ↘ EN PAUSA (con fecha de retomar)
+```
+
+- Cambiar de estado **exige registrar la actividad** que lo justifica (llamada, mail,
+  visita, WhatsApp, reunión) y **agendar la próxima acción con fecha**. Un proyecto
+  nunca queda sin próximo paso: si no hay fecha, cae a "sin contactar" y aparece en rojo.
+- **Motivo de pérdida tipificado** (precio, plazo, eligió otro sistema, no era el
+  decisor, sin respuesta, proyecto cancelado, fuera de zona) + comentario libre. Es el
+  dato que después le dice a la empresa por qué pierde.
+- **Timeline por proyecto:** toda actividad, cambio de estado, cotización emitida y
+  archivo adjunto, en orden cronológico y sin poder borrarse.
+- Notas internas (no visibles para el cliente) y adjuntos (planos revisados, mails,
+  fotos del terreno).
+
+#### 3. Crear proyecto — el comercial también cotiza
+
+El comercial usa **el mismo motor** que el cliente, con permisos ampliados:
+
+- **Alta manual del cliente** (nombre, teléfono, email, localidad, origen del contacto)
+  y carga del plano en su nombre. Caso típico: el cliente llamó, vino a la planta o lo
+  levantaron en una feria y mandó el plano por WhatsApp.
+- **Cotizar sin plano.** Un modo rápido por superficie y tipología —"120 m², una planta,
+  ~40 ml de muro exterior"— para dar un número en la misma llamada. Se marca claramente
+  como **estimación gruesa** y con banda más ancha que la del cotizador con plano.
+- **Modo experto siempre habilitado:** corregir geometría, cambiar núcleo y espesores,
+  elegir sistema de losa y nivel de terminación.
+- **Ajustes de cotización** dentro de límites configurables por rol:
+  · descuento hasta un tope (ej. 10 %); por encima requiere aprobación del gerente
+  · agregar ítems fuera de catálogo con descripción y precio manual
+  · sobrescribir un valor de referencia para esa cotización puntual (con motivo)
+  Todo ajuste queda registrado con autor, valor anterior y motivo.
+- **Emitir presupuesto formal:** convierte la estimación en un documento validado, con
+  número, validez en días, condiciones comerciales y firma del comercial. El PDF cambia
+  de tono: deja de decir "estimación preliminar" y pasa a ser una oferta con vigencia.
+  Solo un usuario autenticado puede emitirlo.
+- **Duplicar y versionar:** rehacer una cotización con otra configuración para
+  comparar alternativas frente al cliente (Isopor vs Neotech, dos niveles de
+  terminación) sin perder la anterior.
+- **Enviar al cliente** por email desde la app, con seguimiento de apertura, o generar
+  un link público de solo lectura para mandar por WhatsApp.
+
+#### 4. Asignación y cartera
+
+- **Ruteo automático del lead entrante** por zona geográfica, con round-robin dentro de
+  la zona y respeto de la carga de cada comercial.
+- **Reasignación manual** por el gerente, con motivo y notificación a ambos.
+- **Cartera propia por defecto:** cada comercial ve sus proyectos. Puede ver los del
+  equipo en modo lectura si la configuración lo permite.
+- **Alerta de reasignación automática** cuando un lead lleva N horas sin contactar, para
+  que un lead caliente no se enfríe esperando a alguien que está de licencia.
+
+#### 5. Notificaciones
+
+Email y push (y opcionalmente WhatsApp Business): lead nuevo asignado, seguimiento que
+vence hoy, cliente que abrió el presupuesto, presupuesto por vencer, aprobación de
+descuento pendiente o resuelta.
+
+#### 6. Vista de gerencia comercial
+
+Rol aparte, con todo lo del comercial más:
+
+- Embudo por comercial, por zona, por origen y por período; tasa de conversión y tiempo
+  medio en cada estado.
+- **Ranking de motivos de pérdida** — el input más valioso para ajustar precio y discurso.
+- **Tiempo de primera respuesta** por comercial, que es la métrica que más correlaciona
+  con cierre.
+- Monto en pipeline ponderado por probabilidad de estado.
+- Cola de aprobación de descuentos.
+- Alta, baja y permisos de usuarios; definición de zonas y topes de descuento.
+
+### Backoffice técnico y de administración
 
 - **Panel de precios:** ABM de productos, precios, unidades de venta, packs, vigencia,
   ajuste masivo por %, historial de versiones. Cada cotización queda congelada contra
   una versión de lista.
-- **Panel de coeficientes:** TODAS las reglas de cómputo editables desde la UI, sin
-  tocar código, versionadas.
-- **Bandeja de leads:** cotizaciones entrantes con plano, cómputo, datos de contacto,
-  estado (nuevo / contactado / validado / cotizado / vendido / perdido), asignación a
-  distribuidor, exportación CSV y webhook al CRM.
-- **Auditoría:** comparar cómputo automático vs. cómputo validado por el técnico, para
-  calibrar los coeficientes con obras reales.
+- **Panel de coeficientes:** TODAS las reglas de cómputo y los valores de referencia
+  editables desde la UI, sin tocar código, versionados.
+- **Auditoría de cómputo:** comparar cómputo automático vs. cómputo real de obra, para
+  calibrar los coeficientes y angostar las bandas.
+- **Distribuidores y zonas:** alta, cobertura geográfica, costos de flete, y derivación
+  del lead cuando la venta va por canal indirecto.
+- **Log de auditoría:** quién vio, editó, descargó o exportó cada proyecto. Los planos
+  de clientes son datos sensibles.
+
+### Roles y permisos
+
+| Rol | Puede |
+|---|---|
+| **Visitante** | Cotizar en el sitio público, descargar su PDF. Sin cuenta. |
+| **Comercial** | Ver y trabajar **su** cartera, crear proyectos y clientes, cotizar, ajustar dentro de su tope, emitir presupuestos, registrar actividad. |
+| **Gerente comercial** | Todo lo anterior sobre **todas** las carteras + asignar, aprobar descuentos, ver métricas del equipo. |
+| **Técnico** | Validar cómputos, corregir geometría, cargar obras reales para calibración. |
+| **Distribuidor** | Ver solo los leads derivados a su zona, en modo acotado. |
+| **Admin** | Precios, coeficientes, usuarios, zonas, integraciones. |
+
+Permisos aplicados **en el backend** (row-level security por cartera), nunca solo
+ocultando botones en el frontend.
 
 ---
 
@@ -391,7 +520,9 @@ DB          PostgreSQL + Prisma
 Storage     S3 compatible, planos privados con URLs firmadas
 IA          API de Claude (visión) con reintentos, timeout y fallback a revisión manual
 PDF         generación server-side con la identidad visual de Concrehaus
-Auth        magic link por email; roles admin / técnico / distribuidor
+Auth        magic link por email + usuario/contraseña con 2FA para el portal comercial
+            Roles: visitante / comercial / gerente comercial / técnico / distribuidor / admin
+            Autorización row-level en backend (cada comercial solo ve su cartera)
 i18n        es-AR (formato de números y moneda argentina)
 Deploy      Vercel o contenedor Docker; migraciones versionadas
 ```
@@ -399,13 +530,26 @@ Deploy      Vercel o contenedor Docker; migraciones versionadas
 ### Modelo de datos (mínimo)
 
 ```
-Usuario, Proyecto, ArchivoPlano, ExtraccionIA, GeometriaValidada, Panelizacion,
-Computo, ItemComputo, Producto, ListaPrecios, PrecioProducto,
-CoeficientesComputo, Cotizacion, ItemCotizacion, Lead, Distribuidor, ZonaFlete
+# Núcleo del cotizador
+Proyecto, ArchivoPlano, ExtraccionIA, GeometriaValidada, Panelizacion,
+Computo, ItemComputo, Cotizacion, ItemCotizacion, AjusteCotizacion
+
+# Catálogo y reglas
+Producto, TipoInsumo, ListaPrecios, PrecioProducto, CoeficientesComputo
+
+# Comercial
+Usuario, Rol, Cliente, Asignacion, Actividad, ProximaAccion, MotivoPerdida,
+SolicitudDescuento, Zona, Distribuidor, ZonaFlete, Notificacion, LogAuditoria
 ```
 
-Cotización inmutable una vez emitida: guarda snapshot de geometría, panelización,
-coeficientes y precios. Reabrir = nueva versión.
+Reglas del modelo:
+- **Cotización inmutable** una vez emitida: guarda snapshot de geometría, panelización,
+  coeficientes y precios. Reabrir = nueva versión, la anterior queda visible.
+- **`Proyecto` es la unidad de trabajo comercial** y puede tener N cotizaciones
+  (alternativas y versiones). El estado del embudo vive en `Proyecto`, no en `Cotizacion`.
+- **`Actividad` es append-only.** No se edita ni se borra: es el historial del cliente.
+- Un `Proyecto` sin `ProximaAccion` abierta es, por definición, un proyecto en riesgo, y
+  la UI lo trata como tal.
 
 ---
 
@@ -475,7 +619,9 @@ sensación de trámite.
 3. Backoffice completo de precios, coeficientes y leads.
 4. Tests: unitarios sobre TODO el motor de cómputo (crítico — incluyendo casos borde de
    panelización: tramo de 1,19 m, de 2,41 m, muros con vanos que abarcan varios paneles),
-   integración del pipeline de extracción, E2E del flujo principal.
+   integración del pipeline de extracción, **tests de autorización por rol y por cartera
+   contra la API**, y E2E de dos flujos: el del cliente público y el del comercial
+   (login → lead nuevo → contacto → cotización → presupuesto emitido).
 5. Documentación del motor: cada fórmula, su origen y su fuente.
 6. Guía de calibración: cómo ajustar coeficientes comparando contra obras reales.
 
@@ -494,7 +640,16 @@ sensación de trámite.
 - [ ] Cada cotización es reproducible: mismo input + misma versión = mismo output.
 - [ ] Los planos subidos no son accesibles públicamente.
 - [ ] El disclaimer aparece en pantalla y en el PDF.
-- [ ] Todo lead queda registrado con su cómputo asociado.
+- [ ] Todo lead queda registrado con su cómputo asociado y **asignado a un comercial**.
+- [ ] Un comercial ve, al entrar, exactamente qué proyectos tiene que trabajar hoy y
+      cuáles están vencidos, sin aplicar un solo filtro.
+- [ ] Ningún proyecto activo puede quedar sin próxima acción agendada.
+- [ ] Un comercial no puede ver ni exportar la cartera de otro (verificado con un test
+      de autorización contra la API, no solo en la UI).
+- [ ] Un descuento por encima del tope no se aplica sin aprobación registrada.
+- [ ] El presupuesto formal emitido por un comercial se distingue del estimativo
+      público: numeración, validez y condiciones comerciales.
+- [ ] Toda actividad y todo ajuste quedan en el timeline, con autor y fecha.
 
 ## ORDEN DE TRABAJO
 
@@ -502,9 +657,11 @@ sensación de trámite.
 Fase 1  Motor de cómputo + panelización + backoffice, con carga MANUAL de geometría.
         (Entrega valor desde el día uno y permite calibrar sin depender de la IA.)
 Fase 2  Pipeline de extracción IA + pantalla de validación interactiva.
-Fase 3  PDF, LEED, checklist de obra, leads, CRM, distribuidores, venta cruzada.
-        Auditoría: cargar obras reales y angostar las bandas de referencia.
-Fase 4  Analítica, nurturing, calibración con obras reales.
+Fase 3  PORTAL COMERCIAL: login, pipeline, estados y seguimiento, alta de proyectos
+        por el comercial, presupuesto formal. Es la fase que convierte los leads en
+        venta — no dejarla para el final.
+Fase 4  PDF, LEED, checklist de obra, CRM, distribuidores, venta cruzada.
+Fase 5  Métricas de gerencia, nurturing, auditoría y calibración con obras reales.
 ```
 
 Empezá por la Fase 1. Antes de escribir código, proponé el esquema de base de datos y
@@ -539,11 +696,16 @@ se calibra sobre la marcha.
 4. **Razón social** que emite los presupuestos (Grupo Estisol / Novapol S.A.).
 5. **Manual de marca:** logo, paleta (verde institucional + azul de la documentación),
    tipografías.
-6. **CRM** en uso y forma de integración.
+6. **CRM** en uso y forma de integración (o si el portal comercial lo reemplaza).
+7. **Equipo comercial:** cuántas personas, cómo se reparten las zonas, y si la venta es
+   directa, por distribuidor o mixta. Define el ruteo automático.
+8. **Topes de descuento** por rol y circuito de aprobación vigente.
+9. **Condiciones comerciales estándar:** validez del presupuesto, formas de pago,
+   plazos de entrega — para el PDF del presupuesto formal.
 
 **Para calibrar (idealmente antes del lanzamiento, obligatorio en los primeros meses):**
 
-7. **Cómputos de 5-10 obras reales ya ejecutadas.** Es lo que convierte los valores de
+10. **Cómputos de 5-10 obras reales ya ejecutadas.** Es lo que convierte los valores de
    referencia en valores propios de Concrehaus. El backoffice ya trae la pantalla de
    auditoría para hacerlo: se carga el cómputo real, se compara contra el automático y
    se ajustan los coeficientes. Cada obra cargada angosta las bandas.
