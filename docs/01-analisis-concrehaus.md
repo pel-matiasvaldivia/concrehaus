@@ -9,13 +9,17 @@
 ## 1. Quién es
 
 - **Marca:** Concrehaus® — "La solución constructiva eficiente".
-- **Empresa:** Grupo Estisol (fabricante de EPS Isopor desde 1964 en Argentina).
-  7 plantas industriales en el país, 2 de ellas dedicadas a Concrehaus. Planta
-  presentada en Pilar, Buenos Aires.
+- **Empresa:** Grupo Estisol / Estisol Construcción (fabricante de EPS Isopor desde
+  1964 en Argentina). 7 plantas industriales en el país, 2 de ellas dedicadas a
+  Concrehaus. La documentación legal del Checklist de obra responsabiliza a
+  **Novapol S.A.** — confirmar qué razón social emite los presupuestos.
+- **Domicilio / planta:** M. L. Anido 1941 (Ruta 25 Km 9), Villa Rosa, Pilar, Bs. As.
+  info@concrehaus.com · 0810 333 24752.
 - **Ecosistema comercial:** tienda online de Estisol Construcción y red de
   distribuidores (Tecnopor, Xcons, Punto Seco, Novopor, Telpor, etc.).
 - **Respaldo:** Certificado de Aptitud Técnica (CAT) de la Dirección de Tecnología
-  e Industrialización de la Subsecretaría de Desarrollo Urbano y Vivienda.
+  e Industrialización de la Subsecretaría de Desarrollo Urbano y Vivienda, y
+  Certificado Sismorresistente.
 
 ## 2. Qué vende
 
@@ -31,13 +35,19 @@ transforman en una estructura continua portante.
 | **Panel de Cerramiento / RapiWall** | Muros no portantes, cierre de estructuras de H°A° o steel | Núcleo EPS + malla galvanizada ambas caras; recibe revoque proyectado. ~2,8 m² de superficie lista por panel |
 | **Mallas de refuerzo** (accesorios) | Continuidad estructural | Angular M15 185×185×1230 mm y M30 300×300×1230 mm (encuentros en ángulo); Plana 225×1230 y 300×1230 mm (aberturas, empalmes, discontinuidades); U 195×195×1230 mm (aleros, bordes de muro, parapetos) |
 
-**Geometría base:** paneles rectangulares planos de **1,20 m de ancho útil** y
-**altura variable según proyecto, hasta 6 m**. Las mallas accesorias vienen en
-módulos de **1,23 m**.
+**Geometría base:** ancho del **núcleo EPS 1,20 m**, ancho de **cada malla 1,24 m**,
+**ancho total de la pieza 1,28 m** — la malla vuela 4 cm y se solapa con el panel
+vecino, por lo que el **paso de modulación real es de 1,20 m**. Altura variable según
+proyecto, hasta 6 m. Las mallas accesorias vienen en módulos de **1,23 m**.
+
+**Núcleos disponibles:** EPS Isopor (PCE, λ = 0,037 W/m·K) y Neotech con grafito
+(PCN, λ = 0,031 W/m·K). Espesores frecuentes: **8 cm en exteriores, 4-6 cm en
+interiores**. Mallas de acero trafilado de **550 MPa** de tensión proporcional.
 
 **Performance publicada:**
 - Montaje: **0,5 Hh/m²** vs. **1,5 Hh/m²** de mampostería tradicional (3× productividad).
-- Aislación: con 8 cm de núcleo, **K ≈ 0,5 W/m²·K**.
+- Aislación: panel de referencia **PCE08 → K = 0,41 W/m²K** con Isopor y
+  **0,35 W/m²K** con Neotech.
 - Durabilidad > 60 años, resistencia al fuego F-180, bajo mantenimiento estructural.
 
 ## 3. Estructura del sitio
@@ -92,13 +102,35 @@ altamente modular (ancho fijo 1,20 m, accesorios de 1,23 m), catálogo acotado
 (C / F / cerramiento + 3 familias de malla) y espesores normalizados. Es un
 sistema mucho más computable que la mampostería tradicional.
 
-## 6. A verificar con el sitio a la vista
+## 6. Documentación oficial ya incorporada
+
+El cliente aportó cuatro documentos que resolvieron la mayor parte de los coeficientes
+del motor de cómputo. El detalle con fuente por valor está en `03-parametros-tecnicos.md`.
+
+| Documento | Qué aporta al cotizador |
+|---|---|
+| **Fichas LEED** (Isopor y Neotech) | Geometría exacta del panel (1,20 / 1,24 / 1,28 m), λ y K por núcleo, espesores frecuentes, acero 550 MPa, créditos LEED EAp2 / EAc1 / MRc5 |
+| **Detalles Constructivos v2015** | Conteo de mallas angulares por encuentro (2 M15 en L, T y losa-pared), regla M25 para pared > 10 cm, hierro de anclaje L=30+12 / SEP=50, lenguaje legal del disclaimer |
+| **Instructivo de Colocación v1** | Dosificación completa del concreto proyectado, secuencia de proyección en 2 pasadas, contraflecha 7 mm/m, desapuntalamiento ≥14 días, métodos de montaje, tratamiento de aberturas |
+| **Checklist de obra** | Listado de herramientas y equipos, checklist de 9 etapas — insumo directo para dos entregables adicionales de la app |
+
+Tres hallazgos con impacto directo:
+
+1. **El paso de panelización es 1,20 m, no 1,28 m.** La malla vuela y se solapa. Dividir
+   por el ancho total sobreestima ~6,7 % de los paneles.
+2. **La dosificación oficial permite computar insumos de obra**, no solo paneles:
+   cemento, arena, agua, fibra de polipropileno y aditivos (Sikacrete, Sika1). Amplía
+   el alcance de la venta cruzada de forma significativa.
+3. **El crédito LEED MRc5 es calculable automáticamente**: exige materiales fabricados a
+   menos de 800 km de la obra, y la app ya conoce la ubicación del proyecto y la planta.
+
+## 7. A verificar con el sitio a la vista
 
 - [ ] Menú de navegación exacto y existencia de `/contacto/`, `/obras/`, `/distribuidores/`.
 - [ ] Listado completo de espesores de núcleo comercializados por tipo de panel.
 - [ ] Alturas estándar de stock vs. corte a medida.
-- [ ] Coeficientes oficiales del Manual de Ejecución: consumo de hormigón por m²,
-      criterios de solape de mallas, refuerzos por abertura.
-- [ ] Identidad visual: paleta, tipografías, logo, tono editorial.
+- [ ] Consumo oficial de cemento y arena por m² de pared proyectada (lo único que la
+      documentación aportada no permite derivar).
+- [ ] Identidad visual: paleta (verde institucional + azul), tipografías, logo.
 - [ ] Política de precios: ¿precio público o solo a través de distribuidor?
 - [ ] Formularios/CRM ya en uso y herramientas de analítica instaladas.
