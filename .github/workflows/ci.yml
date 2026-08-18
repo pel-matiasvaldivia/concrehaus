@@ -1,0 +1,41 @@
+name: CI
+
+# Validación rápida en cada push / PR: compila el frontend, chequea tipos y
+# valida que el docker-compose sea correcto. No publica imágenes (de eso se
+# encarga build-images.yml).
+
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+  pull_request:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar docker-compose
+        run: |
+          docker network create npm || true
+          cp .env.example .env
+          docker compose -f docker-compose.yml -f docker-compose.build.yml config >/dev/null
+          echo "docker-compose válido"

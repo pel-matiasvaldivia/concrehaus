@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------
+   Paleta institucional Concrehaus
+   Muestreada de la documentación oficial (Fichas LEED, Detalles
+   Constructivos e Instructivo de Colocación).
+   --------------------------------------------------------------- */
+@theme {
+  --color-ch-green: #3eae49;
+  --color-ch-green-light: #6fbb66;
+  --color-ch-green-dark: #2b8a37;
+  --color-ch-green-soft: #eaf6ea;
+  --color-ch-blue: #1f50a3;
+  --color-ch-blue-dark: #163b78;
+  --color-ch-blue-soft: #eef2fb;
+  --color-ch-gray: #d1d2d4;
+  --color-ch-gray-soft: #f4f5f6;
+
+  --font-display: var(--font-bitter), Georgia, serif;
+  --font-sans: var(--font-source), system-ui, sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: #ffffff;
+  color: var(--color-ch-blue);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Acento "- - -" que la marca usa arriba de cada título */
+.ch-dashes::before {
+  content: "---";
+  display: block;
+  color: var(--color-ch-green);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+/* Globo verde con cola inferior izquierda, igual que las piezas oficiales */
+.ch-bubble { position: relative; border-radius: 1.25rem; }
+.ch-bubble::after {
+  content: "";
+  position: absolute;
+  left: 2.25rem;
+  bottom: -0.7rem;
+  width: 1.5rem;
+  height: 0.75rem;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+}

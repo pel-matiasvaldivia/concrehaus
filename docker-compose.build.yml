@@ -1,0 +1,21 @@
+# =============================================================================
+#  Override para BUILDEAR las imágenes localmente en lugar de tirar de GHCR.
+#
+#  Uso:
+#    docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+#
+#  En producción (VPS) normalmente NO se usa este archivo: las imágenes las
+#  publica GitHub Actions en GHCR y el VPS solo hace `docker compose pull`.
+# =============================================================================
+services:
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    image: ghcr.io/pel-matiasvaldivia/concrehaus/web:local
+
+  worker:
+    build:
+      context: ./apps/worker
+      dockerfile: Dockerfile
+    image: ghcr.io/pel-matiasvaldivia/concrehaus/worker:local
