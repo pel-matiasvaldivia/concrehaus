@@ -265,12 +265,18 @@ referencia**. Esto tiene tres consecuencias de diseño que no son opcionales.
 ```
 ListaPrecios (madre)
    ├── PVP sugerido          → lo que ve el cliente final en el cotizador público
-   └── Precio a distribuidor → lo que ve el distribuidor en su acceso
-                               (PVP menos su margen de canal, configurable)
+   └── Precio a distribuidor → PVP × (1 − 0,10)   [margen de canal: 10 %]
+                               lo que ve el distribuidor en su acceso
 ```
 
 Un mismo cómputo se valoriza contra el nivel que corresponda según quién esté mirando.
 El motor de cómputo es idéntico; solo cambia la lista aplicada.
+
+**b-bis. El descuento no existe en el cotizador público.**
+La banda de la estimación pública es de ± 15 % en los ítems Clase B; el descuento máximo
+es del 5 %. Mostrar un descuento dentro de un rango tres veces más ancho no comunica
+nada y devalúa la herramienta. El descuento aparece **solo en el presupuesto formal que
+emite un comercial**, donde ya hay cómputo revisado y un precio firme que defender.
 
 **b. El cotizador público habla de "precio estimado de referencia".**
 Nunca "precio final", nunca "precio Concrehaus". El PDF aclara que la venta y la
@@ -278,19 +284,61 @@ facturación las realiza el distribuidor de la zona, y que el valor final puede 
 según sus condiciones. Prometer un precio que otro va a facturar es la forma más rápida
 de romper la relación con el canal.
 
-**c. Tope de descuento: 15 %.**
+**c. Aritmética del canal — el punto que hay que resolver antes de codear.**
 
-- Default configurable: **15 % para el rol comercial**. Por encima, requiere aprobación
-  del gerente comercial, con motivo y registro.
-- El descuento se aplica **sobre el PVP sugerido** y se muestra desglosado en la
-  cotización (precio de lista, descuento aplicado, subtotal).
-- **Alerta de margen de canal:** si el descuento otorgado invade el margen del
-  distribuidor, la UI lo advierte antes de confirmar. Un descuento del 15 % sobre PVP
-  puede dejar al distribuidor sin margen y frustrar la venta que se intentaba cerrar.
-  🔶 **Definir con Concrehaus**: si el 15 % aplica sobre PVP o sobre lista de
-  distribuidor. El motor soporta ambos; hay que elegir cuál es el default.
-- Descuentos acumulados por proyecto: si se emiten varias versiones, el tope se evalúa
-  sobre la versión vigente, no sobre la suma.
+Los dos parámetros definidos por Concrehaus:
+
+```
+margen_distribuidor        = 10 %  sobre PVP
+tope_descuento_comercial   =  5 %  sobre PVP  (por encima: aprobación del gerente)
+```
+
+De ahí sale la estructura de precios:
+
+```
+PVP sugerido            100
+Precio a distribuidor    90     (PVP × 0,90 — el margen del canal es de 10 puntos)
+```
+
+**El descuento sale del margen del distribuidor, no de la nada.** Con el tope del 5 %:
+
+| | Sin descuento | Con 5 % de descuento |
+|---|---|---|
+| Precio al cliente final | 100 | **95** |
+| Precio a distribuidor | 90 | 90 |
+| **Margen del distribuidor** | 10 (10,0 %) | **5 (5,3 %)** |
+
+**Un descuento del 5 % le corta al distribuidor casi la mitad del margen.** Si eso no
+se resuelve explícitamente, el comercial de Concrehaus negocia un precio que el
+distribuidor después no quiere sostener, y la venta se cae en el último paso.
+
+**Política de absorción del descuento** — configurable, hay que elegir el default:
+
+| Opción | Qué pasa con 5 % de descuento | Efecto |
+|---|---|---|
+| **A. Absorbe el distribuidor** | Precio a distribuidor sigue en 90; su margen cae a 5,3 % | Concrehaus no resigna nada, pero el canal pierde incentivo para cerrar |
+| **B. Absorbe Concrehaus** *(recomendada)* | Precio a distribuidor baja a 85,5; el margen se mantiene en 10 % | Concrehaus resigna 4,5 puntos; el distribuidor conserva su incentivo intacto |
+| **C. Compartido** | Se reparte según un ratio configurable | Intermedia; útil para descuentos grandes aprobados por gerencia |
+
+Recomendación: **B por default.** El descuento es una herramienta comercial de
+Concrehaus para ganar el proyecto; hacérselo pagar a quien tiene que cerrarlo es
+contraproducente. Implementar las tres y dejar la elección en el backoffice.
+
+**Reglas de implementación:**
+
+- El descuento se aplica **siempre sobre el PVP sugerido** y se muestra desglosado
+  (precio de lista, descuento, subtotal).
+- Al mover el descuento, la UI muestra **en vivo el margen que le queda al
+  distribuidor**, en pesos y en porcentaje, con semáforo:
+  🟢 ≥ 8 % · 🟡 5–8 % · 🔴 < 5 %. El comercial tiene que ver lo que está regalando.
+- **Piso de margen del distribuidor** configurable (default 5 %): por debajo, el sistema
+  no deja confirmar sin aprobación del gerente, aunque el descuento esté dentro del 5 %.
+- **Por encima del 5 %** va a la cola de aprobación del gerente comercial, con motivo,
+  y muestra el impacto en margen antes de enviarse.
+- Descuentos acumulados por proyecto: el tope se evalúa sobre la **versión vigente** de
+  la cotización, no sobre la suma de versiones.
+- Todos los porcentajes viven en `CoeficientesComercial`, editables sin desplegar código
+  — el margen del 10 % y el tope del 5 % van a cambiar con el tiempo.
 
 #### 4-ter. Acceso del distribuidor
 
@@ -326,7 +374,8 @@ Rol aparte, con todo lo del comercial más:
 - **Tiempo de primera respuesta** por comercial, que es la métrica que más correlaciona
   con cierre.
 - Monto en pipeline ponderado por probabilidad de estado.
-- Cola de aprobación de descuentos (todo lo que supere el 15 %).
+- Cola de aprobación de descuentos (todo lo que supere el **5 %** o perfore el piso de
+  margen del distribuidor), con el impacto en margen visible en cada solicitud.
 - **Tablero de canal:** conversión por distribuidor, proyectos derivados sin confirmar,
   monto derivado vs. monto facturado, tiempo medio entre derivación y cierre. Es la
   medición que hoy la empresa no tiene.
@@ -351,8 +400,8 @@ Rol aparte, con todo lo del comercial más:
 | Rol | Puede |
 |---|---|
 | **Visitante** | Cotizar en el sitio público, descargar su PDF. Sin cuenta. |
-| **Comercial** | Ver y trabajar **su** cartera (asignación nacional), crear proyectos y clientes, cotizar, descontar **hasta 15 %**, emitir presupuestos, derivar a distribuidor, registrar actividad. |
-| **Gerente comercial** | Todo lo anterior sobre **todas** las carteras + asignar, **aprobar descuentos por encima del 15 %**, ver métricas del equipo y del canal. |
+| **Comercial** | Ver y trabajar **su** cartera (asignación nacional), crear proyectos y clientes, cotizar, descontar **hasta 5 % sobre PVP**, emitir presupuestos, derivar a distribuidor, registrar actividad. |
+| **Gerente comercial** | Todo lo anterior sobre **todas** las carteras + asignar, **aprobar descuentos por encima del 5 %** y los que perforen el piso de margen del canal, ver métricas del equipo y del canal. |
 | **Técnico** | Validar cómputos, corregir geometría, cargar obras reales para calibración. |
 | **Distribuidor** | Ver **solo los proyectos derivados a él**, con precios a su nivel de lista; confirmar derivación, registrar actividad y **cargar la confirmación de facturación**. |
 | **Admin** | Precios, coeficientes, usuarios, zonas, integraciones. |
@@ -622,8 +671,8 @@ Producto, TipoInsumo, ListaPrecios, PrecioProducto, CoeficientesComputo
 
 # Comercial
 Usuario, Rol, Cliente, Asignacion, Actividad, ProximaAccion, MotivoPerdida,
-SolicitudDescuento, Distribuidor, CoberturaDistribuidor, Derivacion,
-ConfirmacionFacturacion, ZonaFlete, Notificacion, LogAuditoria
+SolicitudDescuento, CoeficientesComercial, Distribuidor, CoberturaDistribuidor,
+Derivacion, ConfirmacionFacturacion, ZonaFlete, Notificacion, LogAuditoria
 ```
 
 Reglas del modelo:
@@ -634,8 +683,12 @@ Reglas del modelo:
 - **`Actividad` es append-only.** No se edita ni se borra: es el historial del cliente.
 - Un `Proyecto` sin `ProximaAccion` abierta es, por definición, un proyecto en riesgo, y
   la UI lo trata como tal.
-- **`ListaPrecios` tiene dos niveles** (PVP sugerido y precio a distribuidor). La
-  cotización guarda cuál se aplicó; el mismo cómputo se puede valorizar contra ambos.
+- **`ListaPrecios` tiene un solo precio cargado, el PVP.** El precio a distribuidor se
+  **deriva** aplicando su margen (default 10 %, con posibilidad de margen propio por
+  distribuidor). Cargar dos listas a mano se desincroniza el primer día.
+- **`CoeficientesComercial`** guarda margen de canal, tope de descuento, piso de margen
+  y política de absorción, versionados igual que los coeficientes de cómputo. La
+  cotización guarda con qué versión se emitió.
 - **`Derivacion` es una entidad, no un campo.** Guarda distribuidor, fecha, monto
   derivado y estado; `ConfirmacionFacturacion` es lo único que habilita `GANADO`.
 - **No hay `Zona` comercial.** El equipo es nacional; la geografía vive en
@@ -737,8 +790,12 @@ sensación de trámite.
 - [ ] Ningún proyecto activo puede quedar sin próxima acción agendada.
 - [ ] Un comercial no puede ver ni exportar la cartera de otro (verificado con un test
       de autorización contra la API, no solo en la UI).
-- [ ] Un descuento **superior al 15 %** no se aplica sin aprobación registrada del
-      gerente comercial, con motivo.
+- [ ] Un descuento **superior al 5 % sobre PVP** no se aplica sin aprobación registrada
+      del gerente comercial, con motivo.
+- [ ] Al aplicar un descuento, el comercial ve **en vivo** el margen resultante del
+      distribuidor, en pesos y en porcentaje, con semáforo.
+- [ ] El precio a distribuidor se deriva del PVP con el margen configurado (10 %) y
+      cambiar ese parámetro recalcula toda la lista, sin tocar código.
 - [ ] El cotizador público nunca presenta el precio como final: dice **"estimado de
       referencia"** y aclara que factura el distribuidor.
 - [ ] Un proyecto no puede pasar a `GANADO` sin confirmación de facturación.
@@ -774,8 +831,8 @@ Lo que falta se cubre con **valores de referencia** (`03-parametros-tecnicos.md`
 se calibra sobre la marcha.
 
 **Ya definido por el cliente:** equipo de ventas **nacional** (sin zonas comerciales),
-venta **por distribuidor** (canal indirecto), tope de descuento del **15 %** para el rol
-comercial.
+venta **por distribuidor** (canal indirecto), **margen de distribuidor del 10 % sobre
+PVP** y tope de descuento del **5 % sobre PVP** para el rol comercial.
 
 **Se arranca sin esperar nada.** Lo siguiente mejora la calibración cuando llegue:
 
@@ -799,11 +856,12 @@ comercial.
 5. **Manual de marca:** logo, paleta (verde institucional + azul de la documentación),
    tipografías.
 6. **CRM** en uso y forma de integración (o si el portal comercial lo reemplaza).
-7. **Márgenes de canal por distribuidor** — el diferencial entre PVP sugerido y precio
-   a distribuidor. Sin esto no se puede armar el segundo nivel de la lista de precios
-   ni alertar cuando un descuento invade el margen del canal.
-8. 🔶 **Sobre qué lista aplica el tope del 15 %:** ¿sobre el PVP sugerido o sobre el
-   precio a distribuidor? El motor soporta ambos; hay que elegir el default.
+7. **¿El margen del 10 % es uniforme para todos los distribuidores?** Si hay márgenes
+   diferenciados por volumen o antigüedad, el modelo ya lo soporta (margen por
+   distribuidor, con el 10 % como default).
+8. 🔶 **Política de absorción del descuento** (A / B / C de la sección 4-bis): quién
+   paga el descuento que otorga el comercial. Es la única decisión comercial que sigue
+   abierta y conviene tomarla antes de codear la pantalla de cotización.
 9. **Padrón de distribuidores** con cobertura por localidad, datos de contacto y quién
    es el usuario que va a operar el acceso.
 10. **Condiciones comerciales estándar:** validez del presupuesto, formas de pago,
