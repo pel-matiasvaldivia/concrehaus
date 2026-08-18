@@ -14,6 +14,7 @@ import http from 'node:http';
 import { Worker, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import pg from 'pg';
+import { extraerGeometria } from './extraction.js';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://redis:6379';
 const DATABASE_URL =
@@ -33,16 +34,32 @@ const worker = new Worker(
   async (job) => {
     console.log(`[worker] procesando job ${job.id} proyecto=${job.data.proyectoId}`);
 
-    // TODO(Fase 2): pipeline real de extracción.
-    //   1. Descargar el plano del storage (S3/MinIO) con URL firmada.
-    //   2. Normalizar: PDF → imagen 300dpi | DXF → parseo vectorial.
-    //   3. Detectar escala (texto / cota / referencia) — exigir calibración si baja.
-    //   4. Extracción estructurada con la API de Claude (visión) → JSON tipado.
-    //   5. Post-proceso geométrico determinístico + panelización (paso 1,20 m).
-    //   6. Persistir GeometriaValidada / ExtraccionIA y marcar el proyecto listo.
-    await new Promise((r) => setTimeout(r, 250));
+    // Pipeline de extracción. Los pasos 1-2 y 5-6 son puntos de enganche que se
+    // completan al integrar el storage y el motor de cómputo; el paso 4 (lectura
+    // del plano con la API de Claude) ya está implementado en extraction.js.
+    //
+    //   1. TODO: descargar el plano del storage (S3/MinIO) con URL firmada.
+    //   2. TODO: normalizar: PDF → imagen 300dpi | DXF → parseo vectorial.
+    //   3-4. Extracción estructurada con la API de Claude (visión) → JSON tipado.
+    //   5. TODO: post-proceso geométrico determinístico + panelización (paso 1,20 m).
+    //   6. TODO: persistir GeometriaValidada / ExtraccionIA y marcar el proyecto listo.
+    const { imageBase64, mediaType, alturaLibreM } = job.data;
+    if (!imageBase64) {
+      // Sin imagen aún (encolado de prueba): no llamamos a la API.
+      return { ok: true, proyectoId: job.data.proyectoId, skipped: 'sin imagen' };
+    }
 
-    return { ok: true, proyectoId: job.data.proyectoId, procesadoEn: new Date().toISOString() };
+    const geometria = await extraerGeometria(Buffer.from(imageBase64, 'base64'), {
+      mediaType,
+      alturaLibreM,
+    });
+
+    return {
+      ok: true,
+      proyectoId: job.data.proyectoId,
+      geometria,
+      procesadoEn: new Date().toISOString(),
+    };
   },
   { connection, concurrency: Number(process.env.WORKER_CONCURRENCY ?? 2) }
 );
