@@ -58,7 +58,7 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/${{ matrix.name }}
           tags: |
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/concrehaus-material-quoter-js4pqx' }}
             type=ref,event=branch
             type=ref,event=tag
             type=sha,format=short

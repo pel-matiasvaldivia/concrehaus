@@ -50,13 +50,25 @@ docker network create npm    # si NPM ya la creó, omitir
 cp .env.example .env
 nano .env                     # completar passwords, dominio y ANTHROPIC_API_KEY
 
-# 3. Autenticarse en GHCR (si el repo/paquete es privado)
+# 3. Autenticarse en GHCR
+#    Los paquetes de GHCR son PRIVADOS por defecto, aun en repos públicos.
+#    Opción A (recomendada): en GitHub → repo → Packages → cada paquete
+#      (web y worker) → Package settings → Change visibility → Public.
+#      Así el `docker compose pull` funciona sin login.
+#    Opción B: mantenerlos privados y autenticarse con un PAT (read:packages):
 echo $GHCR_TOKEN | docker login ghcr.io -u <usuario> --password-stdin
 
 # 4. Levantar
 docker compose pull
 docker compose up -d
 ```
+
+> **Tag por defecto (`latest`).** El workflow publica `latest` desde `main`
+> y desde la rama de despliegue activa. Si desplegás otra rama o un tag `vX`,
+> fijá `TAG=` en el `.env` con el nombre exacto de la imagen publicada
+> (p. ej. `TAG=claude-concrehaus-material-quoter-js4pqx` o `TAG=v1.0.0`).
+> Un `manifest unknown` casi siempre significa que ese `TAG` no existe en GHCR
+> o que el paquete es privado y falta el `docker login`.
 
 Luego, en **Nginx Proxy Manager**, crear un Proxy Host apuntando a
 `web:3000` (Scheme `http`), dentro de la red `npm`, con el certificado del
