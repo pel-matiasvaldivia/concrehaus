@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /comercial
+Disallow: /distribuidores
+Disallow: /api
